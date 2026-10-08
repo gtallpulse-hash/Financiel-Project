@@ -151,3 +151,59 @@ if (levels.some((l) => l.entry.id === 'level4')) {
     for (const v of Object.values(u)) assert.ok(v > 0 && v < 100);
   });
 }
+
+if (levels.some((l) => l.entry.id === 'level5')) {
+  const L5 = niveau('level5');
+  const alle = [...L5.begrippen.flatMap((b) => b.vragen), ...L5.eindtoets.vragen];
+
+  // Regels van het spel voor de cyclusfase, op basis van het bbp-niveau per kwartaal
+  const fase = (reeksPunten, i) => {
+    const p = reeksPunten.map((x) => x.y);
+    const record = Math.max(...p.slice(0, i));
+    if (p[i] < p[i - 1]) return 'Krimp';
+    if (p[i] > record) return 'Groei';
+    return 'Herstel';
+  };
+  const isPiek = (reeksPunten, i) => {
+    const p = reeksPunten.map((x) => x.y);
+    return p[i] >= Math.max(...p.slice(0, i)) && p[i + 1] < p[i];
+  };
+
+  test('level 5: elke Cyclus-plaatsing volgt de vier regels van het spel op de echte bbp-cijfers', () => {
+    const cyc = alle.filter((q) => q.cyclus);
+    assert.ok(cyc.length >= 5);
+    const namen = ['Groei', 'Piek', 'Krimp', 'Herstel'];
+    for (const q of cyc) {
+      assert.deepEqual(q.opties, namen, q.id);
+      const pts = L5.grafieken[q.grafiek].punten;
+      assert.equal(q.markeer.length, 1, q.id);
+      const i = q.markeer[0].i;
+      assert.ok(i > 0 && i < pts.length - 1, q.id);
+      const verwacht = isPiek(pts, i) ? 'Piek' : fase(pts, i);
+      assert.equal(namen[q.juist], verwacht, `${q.id}: ${pts[i].x}`);
+    }
+  });
+
+  test('level 5: gedateerde feiten in de teksten kloppen met de grafieken', () => {
+    const n = reeks(L5.grafieken['nasdaq-dotcom']);
+    assert.equal(Object.entries(n).sort((a, b) => b[1] - a[1])[0][0], '2000-02');
+    assert.ok(n['2002-09'] < n['2000-02'] * 0.3);
+    const h = reeks(L5.grafieken['huizen-vs']);
+    assert.equal(Object.entries(h).sort((a, b) => b[1] - a[1])[0][0], '2006-07');
+    assert.equal(Object.entries(h).filter(([k]) => k >= '2006-07').sort((a, b) => a[1] - b[1])[0][0], '2012-02');
+    assert.ok(Math.abs((1 - h['2012-02'] / h['2006-07']) * 100 - 27.4) < 0.1);
+    const w = reeks(L5.grafieken.hout);
+    assert.equal(Object.entries(w).sort((a, b) => b[1] - a[1])[0][0], '2021-05');
+    const o = reeks(L5.grafieken['omzet-2020']);
+    assert.ok(o.Delta < o['Coca-Cola'] && o['Coca-Cola'] < 100 && o.PepsiCo > 100);
+    const s = reeks(L5.grafieken.overleving);
+    const waarden = Object.values(s);
+    assert.deepEqual([...waarden].sort((a, b) => b - a), waarden);
+  });
+
+  test('level 5: elke begripsvraag over Mythe of feit heeft een eerlijke uitleg', () => {
+    const mythes = alle.filter((q) => q.type === 'mythe');
+    assert.ok(mythes.length >= 10);
+    for (const q of mythes) assert.ok(q.waarom.length > 30, q.id);
+  });
+}

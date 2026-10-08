@@ -15,7 +15,7 @@ export function tabelNode(t) {
 }
 // Wat boven de vraag staat: grafiek (bij "Raad de grafiek" zonder titel en bron) en tabel.
 const BRON_GRAFIEK = (ctx, q, resultaat = false) => [
-  q.grafiek ? tekenGrafiek(ctx.grafieken[q.grafiek], { anoniem: !!q.raad && !resultaat }).node : null,
+  q.grafiek ? tekenGrafiek(ctx.grafieken[q.grafiek], { anoniem: !!q.raad && !resultaat, markeer: (q.markeer || []).map((m) => ({ kleur: 'herstel', ...m })) }).node : null,
   q.tabel ? tabelNode(q.tabel) : null,
 ];
 const markering = (soort, tekst) => h('span', { class: `fb ${soort}`, style: 'margin:0' }, ikoon(soort === 'juist' ? 'juist' : 'fout'), tekst);
