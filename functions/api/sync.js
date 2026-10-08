@@ -4,7 +4,7 @@
 const MAX_BODY = 300_000;
 const MAX_ITEMS = 1000;
 const MAX_WAARDE = 2000;
-const SLEUTEL_RE = /^(c|d):[\w.:-]{1,80}$/;
+const SLEUTEL_RE = /^(c|d|l):[\w.:-]{1,80}$/;
 
 const json = (data, status = 200) =>
   new Response(JSON.stringify(data), { status, headers: { 'content-type': 'application/json', 'cache-control': 'no-store' } });

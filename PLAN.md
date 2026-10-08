@@ -298,11 +298,11 @@ We bouwen in stappen, zodat je Level 1 al kunt testen voor de rest er is.
 
 **Open punten**
 
-- [ ] Testen welke officiële databronnen rechtstreeks vanuit de pagina werken
-- [ ] Nagaan of antwoorden zonder bereik bewaard blijven en later synchroniseren
+- [ ] Testen welke officiële databronnen rechtstreeks vanuit de pagina werken (ECB en Eurostat staan aanvragen vanuit de pagina toe; FRED niet; zie BRONNEN.md)
+- [x] Nagaan of antwoorden zonder bereik bewaard blijven en later synchroniseren (getest: offline spelen werkt en antwoorden gaan mee bij de volgende synchronisatie)
 - [ ] Kiezen: maandpakket via een vaste geplande taak of telkens op jouw vraag
 - [ ] Een naam voor het spel
-- [ ] Slaagdrempel voor de eindtoets bevestigen (voorstel: 80%)
+- [ ] Slaagdrempel voor de eindtoets bevestigen (voorstel: 80%; nu ingesteld op 80 %, dus 10 van 12 vragen)
 
 ## Bronnen
 

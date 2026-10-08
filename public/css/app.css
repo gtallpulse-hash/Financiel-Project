@@ -57,3 +57,22 @@ input[type=text],input[type=password]{width:100%;min-height:56px;font:inherit;pa
 .voortgang span{display:block;height:100%;background:var(--inkt)}
 .status{min-height:28px}
 .waarschuwing{border-left:3px solid var(--piek);padding-left:12px}
+
+/* Spelvormen */
+.subkop{font:600 14px/20px var(--tekst);color:var(--zacht);margin:20px 0 4px}
+.keten{list-style:none;margin:0;padding:0;min-height:8px}
+.keten>li{border-top:1px solid var(--lijn)}
+.keten>li:last-child{border-bottom:1px solid var(--lijn)}
+.rij.kies{text-align:left;position:relative}
+.rij.kies.actief{background:var(--lijn);box-shadow:inset 4px 0 0 var(--inkt);padding-left:12px}
+.rij.kies.gekoppeld{box-shadow:inset 4px 0 0 var(--herstel);padding-left:12px;font-weight:600}
+.rij.kies .meta{white-space:nowrap}
+.fb.let-op{color:var(--piek)}
+.figuur{margin:16px 0}
+.figtitel{font:600 16px/24px var(--tekst);margin:0 0 4px}
+svg.grafiek{display:block;width:100%;height:auto;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+svg.grafiek.kiesbaar{cursor:pointer}
+svg.grafiek:focus-visible{outline:3px solid var(--herstel);outline-offset:2px}
+.zacht{color:var(--zacht)}
+.rij.zacht{cursor:default}
+.voortgang{margin:12px 0 0}

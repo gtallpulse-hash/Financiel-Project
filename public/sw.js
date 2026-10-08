@@ -1,8 +1,9 @@
 // Service worker: schil en inhoud bewaren zodat het spel zonder bereik werkt.
-const VERSIE = 'v1';
+const VERSIE = 'v2';
 const SCHIL = [
-  './', 'index.html', 'css/app.css', 'js/app.js', 'js/store.js', 'js/sync.js',
-  'data/test.json', 'manifest.webmanifest', 'icon.svg',
+  './', 'index.html', 'css/app.css', 'manifest.webmanifest', 'icon.svg',
+  'js/app.js', 'js/store.js', 'js/sync.js', 'js/dom.js', 'js/logica.js', 'js/grafiek.js', 'js/vragen.js', 'js/feest.js',
+  'data/level1.json',
 ];
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(VERSIE).then((c) => c.addAll(SCHIL)).then(() => self.skipWaiting()));
