@@ -9,9 +9,10 @@ const nu = () => ++klok;
 test('juist antwoord verlengt de pauze: 1, 3, 7, 14, 30, 60 dagen', () => {
   const s = maakStore(opslag(), nu);
   const verwacht = [1, 3, 7, 14, 30, 60, 60];
-  verwacht.forEach((dagen) => {
-    s.antwoord('x', true, '2026-01-01');
-    assert.equal(s.concept('x').due, plusDagen('2026-01-01', dagen));
+  verwacht.forEach((dagen, i) => {
+    const dag = plusDagen('2026-01-01', i * 100);
+    s.antwoord('x', true, dag);
+    assert.equal(s.concept('x').due, plusDagen(dag, dagen));
   });
 });
 
@@ -20,7 +21,7 @@ test('fout antwoord begint de reeks opnieuw en komt vandaag terug', () => {
   s.antwoord('x', true, '2026-01-01');
   s.antwoord('x', true, '2026-01-02');
   s.antwoord('x', false, '2026-01-05');
-  assert.deepEqual(s.concept('x'), { lvl: 0, ok: 0, due: '2026-01-05' });
+  assert.deepEqual(s.concept('x'), { lvl: 0, ok: 0, due: '2026-01-05', n: 3, d: '2026-01-05' });
   assert.deepEqual(s.teHerhalen('2026-01-05'), ['x']);
 });
 
@@ -73,4 +74,30 @@ test('export en import werken rond; slechte import wordt geweigerd', () => {
   assert.equal(b.concept('x').lvl, 1);
   assert.throws(() => b.importeer('geen json'));
   assert.throws(() => b.importeer('{"app":"iets"}'));
+});
+
+test('op één dag telt alleen het eerste antwoord voor de planning', () => {
+  const s = maakStore(opslag(), nu);
+  s.antwoord('x', true, '2026-02-01');
+  s.antwoord('x', true, '2026-02-01');
+  s.antwoord('x', true, '2026-02-01');
+  assert.equal(s.concept('x').lvl, 1);
+  assert.equal(s.concept('x').due, '2026-02-02');
+  assert.equal(s.concept('x').n, 3);
+});
+
+test('een latere fout op dezelfde dag zet het begrip terug', () => {
+  const s = maakStore(opslag(), nu);
+  s.antwoord('x', true, '2026-02-01');
+  s.antwoord('x', false, '2026-02-01');
+  assert.deepEqual([s.concept('x').lvl, s.concept('x').ok, s.concept('x').due], [0, 0, '2026-02-01']);
+});
+
+test('lesvoortgang wordt bewaard en gesynchroniseerd als item', () => {
+  const s = maakStore(opslag(), nu);
+  s.zetLes('level1-les1', { klaar: 1 });
+  assert.deepEqual(s.les('level1-les1'), { klaar: 1 });
+  assert.ok(s.wijzigingen().some((w) => w.k === 'l:level1-les1'));
+  const andere = maakStore(opslag(), nu);
+  assert.equal(andere.voegSamen({ 'l:level1-les1': { v: { klaar: 1 }, t: 1 } }), 1);
 });
