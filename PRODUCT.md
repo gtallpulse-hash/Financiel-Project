@@ -7,7 +7,7 @@
 web
 
 ## Stack
-Gewone HTML/CSS/JS, geen framework (bevestigd door de gebruiker). Hosting en synchronisatie zijn nog niet gekozen: eerst 2–3 opties voorleggen (zie CLAUDE.md).
+Gewone HTML/CSS/JS, geen framework (bevestigd door de gebruiker). Hosting en synchronisatie: Cloudflare (Pages + Pages Functions + D1), gekozen door de gebruiker. Sync is eigen werk: per begrip wint de nieuwste stand; toegang met een geheime sleutel.
 
 ## Users
 Eén speler: Tristan, beginner zonder economische achtergrond. Speelt vooral op de gsm (op de bus), soms op de computer, via een privé link. Dagelijks 5 tot 20 minuten. Later delen met anderen is niet gepland.
@@ -28,7 +28,7 @@ Korte sessies (±5, ±10–15, 20+ min) in een vaste lus: opwarmer, uitleg, oefe
 - Lesinhoud in aparte compacte databestanden (JSON) per level, los van de code.
 - Spelen gebruikt geen AI en geen Claude.
 - Geen beleggingsadvies of koop-/verkooptips, zichtbaar in het spel. Bron en "geldig op"-datum bij elke uitleg. Knop "Meld een fout".
-- Nog open: officiële databronnen rechtstreeks vanuit de pagina, werking offline-sync, maandpakket via geplande taak of op aanvraag, naam van het spel, slaagdrempel (voorstel 80%).
+- Nog open: officiële databronnen rechtstreeks vanuit de pagina, maandpakket via geplande taak of op aanvraag, naam van het spel, slaagdrempel (voorstel 80%).
 
 ## Brand Commitments
 Geen naam of beeldmerk vastgelegd. Taal: Nederlands (Vlaams). Niet onderhandelbaar: nooit belonen voor risico/virtuele winst/handelen; confetti alleen bij leermijlpalen (level of realiteitstoets); geen meldingen die druk zetten; streak met twee pauzedagen per maand.

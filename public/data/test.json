@@ -1,0 +1,50 @@
+{
+  "level": "test",
+  "titel": "Testinhoud: geen echte les",
+  "begrippen": [
+    {
+      "id": "inflatie",
+      "nl": "Inflatie",
+      "en": "Inflation",
+      "wat": "Inflatie betekent dat de prijzen gemiddeld stijgen. Met hetzelfde geld koop je dan minder.",
+      "vergelijking": "Een broodje dat vorig jaar 2,00 euro kostte, kost nu 2,10 euro.",
+      "voorbeeld": "Van 2,00 naar 2,10 euro is 5 procent duurder.",
+      "cyclus": "Groei",
+      "bron": "Testinhoud, nog geen echte bron",
+      "geldig_op": "2026-10-08",
+      "vragen": [
+        {
+          "vraag": "Een broodje kostte 2,00 euro en kost nu 2,10 euro. Hoeveel procent is de prijs gestegen?",
+          "opties": ["0,10 %", "5 %", "10 %"],
+          "juist": 1,
+          "hint": "Deel de stijging in euro door de oude prijs.",
+          "waarom": "De stijging is 0,10 euro. 0,10 gedeeld door 2,00 is 0,05, dus 5 procent.",
+          "wanneer": "Eén duurder product is nog geen inflatie. Inflatie meet de prijzen van een heel mandje producten.",
+          "herken": "In de cijfers stijgt de index van de consumptieprijzen."
+        }
+      ]
+    },
+    {
+      "id": "rente",
+      "nl": "Rente",
+      "en": "Interest",
+      "wat": "Rente is de prijs van geld lenen, of de vergoeding als je geld uitleent of spaart.",
+      "vergelijking": "Net als huur voor een woning: je betaalt voor het gebruik van andermans geld.",
+      "voorbeeld": "100 euro op een spaarrekening aan 2 procent per jaar levert na één jaar 2 euro op.",
+      "cyclus": "Piek",
+      "bron": "Testinhoud, nog geen echte bron",
+      "geldig_op": "2026-10-08",
+      "vragen": [
+        {
+          "vraag": "Je spaart 100 euro aan 2 % per jaar, zonder rente op rente. Hoeveel heb je na één jaar?",
+          "opties": ["100 euro", "102 euro", "120 euro"],
+          "juist": 1,
+          "hint": "Bereken eerst 2 % van 100 euro en tel dat erbij.",
+          "waarom": "2 % van 100 euro is 2 euro. Samen met je inleg is dat 102 euro.",
+          "wanneer": "De bank kan de rente later aanpassen. Sommige rekeningen hebben ook een basisrente en een getrouwheidspremie.",
+          "herken": "Op je rekeninguittreksel zie je de rente als aparte bijschrijving."
+        }
+      ]
+    }
+  ]
+}
