@@ -20,7 +20,8 @@ export function mooiMax(v) {
 
 export function tekenGrafiek(g, { kies = false, onkies = null, markeer = [], anoniem = false } = {}) {
   const W = 358, H = 224;
-  const L = 60, R = 12, T = 48, B = 28;
+  const trap = !!g.xcat && (g.reeksen ? g.reeksen[0].punten : g.punten).length >= 6; // bij zes of meer namen staan de labels om en om op twee hoogtes
+  const L = 60, R = 12, T = 48, B = 28 + (trap ? 14 : 0);
   const reeksen = g.reeksen || [{ naam: null, punten: g.punten }];
   const punten = reeksen[0].punten;
   const n = punten.length;
@@ -82,7 +83,8 @@ export function tekenGrafiek(g, { kies = false, onkies = null, markeer = [], ano
     const eind = i === n - 1 && g.soort !== 'staaf';
     const start = i === 0 && g.soort !== 'staaf';
     const t = g.xjaar ? p.x.slice(0, 4) : (eind && g.xtitel ? `${p.x} ${g.xtitel}` : p.x);
-    svg.append(tekst(xPos(i), H - 8, t, { 'text-anchor': start ? 'start' : eind ? 'end' : 'middle' }));
+    if (trap) svg.append(tekst(xPos(i), H - 8 - (i % 2 ? 0 : 14), t, { 'text-anchor': 'middle', 'font-size': 12 }));
+    else svg.append(tekst(xPos(i), H - 8, t, { 'text-anchor': start ? 'start' : eind ? 'end' : 'middle' }));
   }
 
   // gegevens

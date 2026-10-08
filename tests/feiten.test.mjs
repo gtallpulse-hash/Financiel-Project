@@ -99,3 +99,55 @@ if (levels.some((l) => l.entry.id === 'level3')) {
     assert.equal(Math.max(...Object.values(m)), m.A);
   });
 }
+
+if (levels.some((l) => l.entry.id === 'level4')) {
+  const L4 = niveau('level4');
+  const alle = [...L4.begrippen.flatMap((b) => b.vragen), ...L4.eindtoets.vragen];
+  const getal = (s) => Number(String(s).replace(/\./g, '').replace(',', '.').replace('−', '-'));
+
+  test('level 4: de K/W-grafiek is koers gedeeld door winst per aandeel (uit de tabel in de vragen)', () => {
+    const t = alle.find((q) => q.tabel?.kolommen?.[2] === 'Winst per aandeel ($)' && q.tabel.rijen.length === 3).tabel;
+    const kw = reeks(L4.grafieken['kw-zes']);
+    for (const [naam, koers, eps] of t.rijen) assert.ok(Math.abs(getal(koers) / getal(eps) - kw[naam]) < 0.06, naam);
+  });
+
+  test('level 4: ondernemingswaarde = beurswaarde + schulden − cash in elke EV-tabel', () => {
+    const ev = L4.begrippen.find((b) => b.id === 'ondernemingswaarde').vragen.filter((q) => q.tabel);
+    assert.equal(ev.length, 3);
+    // Walmart: de rekenvraag geeft de antwoordsom; controleer de tabelrijen onderling
+    for (const q of ev) {
+      const r = Object.fromEntries(q.tabel.rijen.map((x) => [x[0], getal(x[1])]));
+      assert.ok(r.Beurswaarde > 0 && r['Financiële schulden'] >= 0 && r['Geld in kas'] > 0);
+    }
+  });
+
+  test('level 4: beurswaarde = koers × aantal aandelen en rangorde Walmart > Costco', () => {
+    const q = L4.begrippen.find((b) => b.id === 'beurswaarde').vragen.find((x) => x.type === 'mythe');
+    const rij = (n) => q.tabel.rijen.find((r) => r[0] === n);
+    const mc = (n) => getal(rij(n)[1]) * getal(rij(n)[2]);
+    assert.ok(mc('Walmart') > mc('Costco') * 1.9);
+    assert.ok(getal(rij('Costco')[1]) > getal(rij('Walmart')[1]) * 8);
+    const bw = reeks(L4.grafieken.beurswaarde);
+    assert.equal(Math.min(...Object.values(bw)), bw.Delta);
+    assert.ok(Math.abs(bw.Costco - mc('Costco') / 1000) < 1.5);
+    assert.ok(Math.abs(bw.Walmart - mc('Walmart') / 1000) < 1.5);
+  });
+
+  test('level 4: historische K/W van Costco heeft piek in FY24 en dal in FY23', () => {
+    const c = reeks(L4.grafieken['costco-kw']);
+    assert.equal(Object.keys(c).length, 7);
+    assert.equal(Object.entries(c).sort((a, b) => b[1] - a[1])[0][0], 'FY24');
+    assert.equal(Object.entries(c).sort((a, b) => a[1] - b[1])[0][0], 'FY23');
+  });
+
+  test('level 4: Delta heeft precies één verliesjaar in de grafiek (2020)', () => {
+    const d = reeks(L4.grafieken['delta-winst']);
+    assert.deepEqual(Object.entries(d).filter(([, v]) => v < 0).map(([k]) => k), ['2020']);
+  });
+
+  test('level 4: uitkeringsratio van PepsiCo is de hoogste en blijft onder 100 %', () => {
+    const u = reeks(L4.grafieken.uitkering);
+    assert.equal(Object.entries(u).sort((a, b) => b[1] - a[1])[0][0], 'PepsiCo');
+    for (const v of Object.values(u)) assert.ok(v > 0 && v < 100);
+  });
+}
