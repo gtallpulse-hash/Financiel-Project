@@ -1,7 +1,7 @@
 // Echte gegevens uit bronnen en de teksten die erover gaan, tegen elkaar gecontroleerd.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { levels, niveau, reeks } from './helpers.mjs';
+import { levels, niveau, reeks, rts } from './helpers.mjs';
 
 const L1 = niveau('level1');
 test('level 1: echte gegevens in de teksten kloppen met de grafieken', () => {
@@ -207,3 +207,58 @@ if (levels.some((l) => l.entry.id === 'level5')) {
     for (const q of mythes) assert.ok(q.waarom.length > 30, q.id);
   });
 }
+
+if (levels.some((l) => l.entry.id === 'level6')) {
+  const L6 = niveau('level6');
+  const alle = [...L6.begrippen.flatMap((b) => b.vragen), ...L6.eindtoets.vragen];
+
+  test('level 6: Duke-reeksen: capex-tekort het grootst in 2022, rentelast stijgt elk jaar vanaf 2020', () => {
+    const capex = L6.grafieken['duke-capex'].reeksen.find((r) => r.naam === 'Capex').punten;
+    const ocf = L6.grafieken['duke-capex'].reeksen.find((r) => r.naam === 'Operationele kasstroom').punten;
+    const verschil = capex.map((p, i) => [p.x, p.y - ocf[i].y]);
+    assert.equal(verschil.sort((a, b) => b[1] - a[1])[0][0], '2022');
+    const rente = L6.grafieken['duke-rente'].punten.map((p) => p.y);
+    for (let i = 2; i < rente.length; i++) assert.ok(rente[i] >= rente[i - 1] - 1e-9, `rente daalt in jaar ${i}`);
+    assert.equal(reeks(L6.grafieken['duke-capex-jaar'])['2025'], Math.max(...capex.map((p) => p.y)));
+  });
+
+  test('level 6: Albemarle piekt in 2023 in omzet en capex, en de capex valt daarna terug', () => {
+    const o = reeks(L6.grafieken['albemarle-omzet']);
+    assert.equal(Object.entries(o).sort((a, b) => b[1] - a[1])[0][0], '2023');
+    const c = L6.grafieken.albemarle.reeksen.find((r) => r.naam === 'Capex').punten;
+    assert.equal(c.reduce((m, p) => (p.y > m.y ? p : m)).x, '2023');
+    assert.ok(c[c.length - 1].y < c.find((p) => p.x === '2023').y / 3);
+  });
+
+  test('level 6: koperprijs piekt recent en de reeks begint in 2015', () => {
+    const pts = L6.grafieken.koper.punten;
+    assert.equal(pts[0].x, '2015-01');
+    const top = pts.reduce((m, p) => (p.y > m.y ? p : m));
+    assert.ok(top.x >= '2026-01', top.x);
+  });
+
+  test('level 6: elke bewering over beleid is gemarkeerd als voorstel, schatting of volgens een bron', () => {
+    const tekst = JSON.stringify(L6.begrippen.find((b) => b.id === 'eu-netbeleid'));
+    assert.match(tekst, /voorstel/);
+    assert.match(tekst, /schatt/);
+    assert.ok(!/is al van kracht/.test(tekst));
+  });
+
+  test('level 6: fysieke rekenvragen kloppen (MW, MWh, uren)', () => {
+    const q = alle.filter((x) => x.type === 'rek' && /MWh|uur/.test(x.eenheid));
+    assert.ok(q.length >= 3);
+  });
+}
+
+test('realiteitstoets 2: voorbeeldrapport met tabel, twee zelfbeoordeelde opdrachten en vragen die de tabel gebruiken', () => {
+  const rt2 = rts.find((r) => r.entry.id === 'rt2')?.data;
+  assert.ok(rt2);
+  assert.equal(rt2.vragen.filter((q) => q.type === 'leg').length, 2);
+  assert.equal(rt2.vragen.filter((q) => q.tabel).length, 3);
+  const tabel = rt2.documenten[0];
+  const omzet = Object.fromEntries(tabel.rijen.map((r) => [r[0], Number(r[1].replace(/\./g, ''))]));
+  const groei = (omzet.FY24 / omzet.FY22 - 1) * 100;
+  const q = rt2.vragen.find((x) => x.type === 'rek' && /FY22 naar FY24/.test(x.vraag));
+  assert.ok(Math.abs(groei - q.antwoord) < 0.2);
+  assert.equal(tabel.rijen.filter((r) => r[2].startsWith('−')).length, 3);
+});

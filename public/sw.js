@@ -1,12 +1,14 @@
 // Service worker: schil en inhoud bewaren zodat het spel zonder bereik werkt.
-const VERSIE = 'v2';
+const VERSIE = 'v3';
 const SCHIL = [
   './', 'index.html', 'css/app.css', 'manifest.webmanifest', 'icon.svg',
   'js/app.js', 'js/store.js', 'js/sync.js', 'js/dom.js', 'js/logica.js', 'js/grafiek.js', 'js/vragen.js', 'js/feest.js',
   'data/index.json', 'data/level1.json',
 ];
+// De rest van de lesinhoud (samen ruim 100 kB ingepakt) wordt op de achtergrond bewaard, zodat alle levels ook zonder bereik werken.
+const INHOUD = ['data/level2.json', 'data/level3.json', 'data/level4.json', 'data/level5.json', 'data/level6.json', 'data/rt1.json', 'data/rt2.json'];
 self.addEventListener('install', (e) => {
-  e.waitUntil(caches.open(VERSIE).then((c) => c.addAll(SCHIL)).then(() => self.skipWaiting()));
+  e.waitUntil(caches.open(VERSIE).then((c) => c.addAll(SCHIL).then(() => Promise.allSettled(INHOUD.map((u) => c.add(u))))).then(() => self.skipWaiting()));
 });
 self.addEventListener('activate', (e) => {
   e.waitUntil(

@@ -101,7 +101,7 @@ export function tekenGrafiek(g, { kies = false, onkies = null, markeer = [], ano
       if (r.naam) {
         const last = r.punten[r.punten.length - 1];
         const hoogste = last.y >= Math.max(...reeksen.map((x) => x.punten[x.punten.length - 1].y));
-        svg.append(tekst(xPos(n - 1), yPos(last.y) + (hoogste ? -9 : 30), r.naam, { 'text-anchor': 'end', fill: 'var(--inkt)', 'font-weight': 600 }));
+        svg.append(tekst(xPos(n - 1), hoogste ? yPos(last.y) - 9 : (yPos(last.y) + 30 > H - B - 2 ? yPos(last.y) - 9 : yPos(last.y) + 30), r.naam, { 'text-anchor': 'end', fill: 'var(--inkt)', 'font-weight': 600, stroke: 'var(--papier)', 'stroke-width': 4, 'paint-order': 'stroke' }));
       }
       if (reeksen.length === 1) r.punten.forEach((p, i) => svg.append(el('circle', { cx: xPos(i), cy: yPos(p.y), r: 3, fill: 'var(--inkt)' })));
     });

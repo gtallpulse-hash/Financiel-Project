@@ -291,15 +291,17 @@ We bouwen in stappen, zodat je Level 1 al kunt testen voor de rest er is.
 1. **Fundament:** pagina-opzet, sessielus, voortgang en synchronisatie, begrippenboek.
 2. **Level 1** volledig, met Begripkaart, Rekenpuzzel, Dominoketen en Grafiek lezen. Jij test 1 tot 2 weken.
 3. **Bijsturen** op basis van jouw ervaring.
-4. **Level 2**, met Raad de grafiek, Leg het uit en de eerste actuele cijfers.
-5. **Level 3 en 4**, met de Bedrijfsdetective en Realiteitstoets 1.
-6. **Level 5 en 6**, met Mythe of feit, Cyclus-plaatsing en Realiteitstoets 2.
+4. ✅ **Level 2**, met Raad de grafiek, Leg het uit en de eerste actuele cijfers.
+5. ✅ **Level 3 en 4**, met de Bedrijfsdetective en Realiteitstoets 1 (Duke Energy).
+6. ✅ **Level 5 en 6**, met Mythe of feit, Cyclus-plaatsing en Realiteitstoets 2 (voorbeeldrapport plus eigen rapport).
 7. **Open wereld** en het eerste maandelijkse pakket.
 
 **Open punten**
 
 - [ ] Testen welke officiële databronnen rechtstreeks vanuit de pagina werken (ECB en Eurostat staan aanvragen vanuit de pagina toe; FRED niet; zie BRONNEN.md)
 - [x] Nagaan of antwoorden zonder bereik bewaard blijven en later synchroniseren (getest: offline spelen werkt en antwoorden gaan mee bij de volgende synchronisatie)
+- [ ] Realiteitstoets 2 controleren met een echt Trendradar-rapport: nu werkt ze met een eigen voorbeeldrapport en twee zelfbeoordeelde opdrachten, want de inhoud van je rapporten kennen we niet
+- [ ] Cijfers van het IEA, BloombergNEF en de Europese Commissie (Level 6) nakijken bij de primaire bron; zie BRONNEN.md
 - [ ] Kiezen: maandpakket via een vaste geplande taak of telkens op jouw vraag
 - [ ] Een naam voor het spel
 - [ ] Slaagdrempel voor de eindtoets bevestigen (voorstel: 80%; nu ingesteld op 80 %, dus 10 van 12 vragen)
