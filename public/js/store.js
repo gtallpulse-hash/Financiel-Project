@@ -19,7 +19,7 @@ const leeg = () => ({
 });
 
 const geldigItem = (k, e) =>
-  /^(c|d):[\w.:-]{1,80}$/.test(k) && e && typeof e.t === 'number' && e.v && typeof e.v === 'object';
+  /^(c|d|l):[\w.:-]{1,80}$/.test(k) && e && typeof e.t === 'number' && e.v && typeof e.v === 'object';
 
 export function maakStore(opslag, nu = () => Date.now()) {
   let state = leeg();
@@ -36,7 +36,7 @@ export function maakStore(opslag, nu = () => Date.now()) {
 
   const api = {
     concept(id) {
-      return state.items['c:' + id]?.v ?? { lvl: 0, ok: 0, due: null };
+      return state.items['c:' + id]?.v ?? { lvl: 0, ok: 0, due: null, n: 0, d: null };
     },
     bekend(id) { return !!state.items['c:' + id]; },
     beheerst(id) { return this.concept(id).ok >= 3; },
@@ -46,19 +46,27 @@ export function maakStore(opslag, nu = () => Date.now()) {
         .sort((a, b) => state.items[a].v.due.localeCompare(state.items[b].v.due))
         .map((k) => k.slice(2));
     },
+    // Per begrip telt alleen het eerste antwoord van de dag voor de herhaalplanning.
+    // Een latere fout op dezelfde dag zet het begrip terug (komt vandaag nog terug).
     antwoord(id, juist, dag = vandaag()) {
       const c = this.concept(id);
+      const n = (c.n || 0) + 1;
       let nieuw;
-      if (juist) {
+      if (c.d === dag) {
+        nieuw = juist ? { ...c, n } : { lvl: 0, ok: 0, due: dag, n, d: dag };
+      } else if (juist) {
         const lvl = Math.min(c.lvl + 1, INTERVALLEN.length);
-        nieuw = { lvl, ok: c.ok + 1, due: plusDagen(dag, INTERVALLEN[lvl - 1]) };
+        nieuw = { lvl, ok: c.ok + 1, due: plusDagen(dag, INTERVALLEN[lvl - 1]), n, d: dag };
       } else {
-        nieuw = { lvl: 0, ok: 0, due: dag };
+        nieuw = { lvl: 0, ok: 0, due: dag, n, d: dag };
       }
       zet('c:' + id, nieuw);
-      const d = state.items['d:' + dag]?.v ?? { n: 0 };
-      zet('d:' + dag, { n: d.n + 1 });
+      const dg = state.items['d:' + dag]?.v ?? { n: 0 };
+      zet('d:' + dag, { n: dg.n + 1 });
     },
+    // Voortgang in de campagne (lessen en eindtoets).
+    les(id) { return state.items['l:' + id]?.v ?? null; },
+    zetLes(id, waarde) { zet('l:' + id, waarde); },
     // Reeks: opeenvolgende gespeelde dagen. Per maand mogen twee dagen gemist worden.
     streak(dag = vandaag()) {
       let teller = 0;
