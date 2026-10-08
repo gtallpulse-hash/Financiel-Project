@@ -18,46 +18,72 @@ export function mooiMax(v) {
   return 10 * macht;
 }
 
-export function tekenGrafiek(g, { kies = false, onkies = null, markeer = [] } = {}) {
+export function tekenGrafiek(g, { kies = false, onkies = null, markeer = [], anoniem = false } = {}) {
   const W = 358, H = 224;
   const L = 60, R = 12, T = 48, B = 28;
   const reeksen = g.reeksen || [{ naam: null, punten: g.punten }];
   const punten = reeksen[0].punten;
   const n = punten.length;
-  const alle = reeksen.flatMap((r) => r.punten.map((p) => p.y));
-  const ymax = mooiMax(Math.max(...alle, 0));
-  const ymin = Math.min(...alle, 0) < 0 ? -mooiMax(-Math.min(...alle)) : 0;
+  const referentie = g.referentie || [];
+  const alle = [...reeksen.flatMap((r) => r.punten.map((p) => p.y)), ...referentie.map((r) => r.y)];
+  let ymax, ymin;
+  if (g.basis === 'data') {
+    // as die niet bij nul begint (bijvoorbeeld een wisselkoers): alleen bij het verloop zelf
+    const lo = Math.min(...alle), hi = Math.max(...alle);
+    const stap = mooiMax((hi - lo) / 3);
+    ymin = Math.floor(lo / stap + 1e-9) * stap;
+    ymax = Math.ceil(hi / stap - 1e-9) * stap;
+  } else {
+    ymax = Math.max(...alle) <= 0 ? 0 : mooiMax(Math.max(...alle));
+    ymin = Math.min(...alle, 0) < 0 ? -mooiMax(-Math.min(...alle)) : 0;
+  }
   const bereik = ymax - ymin;
   const yPos = (v) => T + (1 - (v - ymin) / bereik) * (H - T - B);
   const slot = (W - L - R) / (g.soort === 'staaf' ? n : n - 1);
   const xPos = (i) => (g.soort === 'staaf' ? L + slot * (i + 0.5) : L + slot * i);
   const dec = g.decimalen ?? 0;
   const waarde = (v, d) => (g.eenheid === 'euro' ? `€ ${fmt(v, d)}` : eenheidTekst(v, g.eenheid, d));
-  const tik = (v) => waarde(v, Number.isInteger(v) ? 0 : Math.min(dec, 2));
+  const tik = (v) => {
+    const d = Number.isInteger(v) ? 0 : Math.min(dec, 2);
+    return g.eenheid === '%' || g.eenheid === 'euro' ? waarde(v, d) : fmt(v, d);
+  };
 
   const svg = el('svg', { viewBox: `0 0 ${W} ${H}`, role: 'img', class: 'grafiek', focusable: 'false',
-    'aria-label': `${g.titel}. ` + reeksen.map((r) => (r.naam ? r.naam + ': ' : '') + r.punten.map((p) => `${p.x}: ${waarde(p.y, dec)}`).join('; ')).join('. ') });
+    'aria-label': `${anoniem ? 'Grafiek zonder titel' : g.titel}. ` + reeksen.map((r) => (r.naam ? r.naam + ': ' : '') + r.punten.map((p) => `${p.x}: ${waarde(p.y, dec)}`).join('; ')).join('. ') });
 
   // nullijn en hoogste lijn, verder niets
   const tekst = (x, y, inhoud, extra = {}) => el('text', { x, y, 'font-size': 13, fill: 'var(--zacht)', ...extra }, inhoud);
   const lijn = (v, kleur, dikte) => el('line', { x1: L, x2: W - R, y1: yPos(v), y2: yPos(v), stroke: kleur, 'stroke-width': dikte });
   const as = (v) => tekst(L - 6, yPos(v) + 4, tik(v), { 'text-anchor': 'end' });
   svg.append(lijn(ymax, 'var(--lijn)', 1), as(ymax));
-  if (ymin < 0) {
+  if (ymin < 0 || g.basis === 'data') {
     svg.append(lijn(ymin, 'var(--lijn)', 1));
-    if (Math.abs(yPos(ymin) - yPos(0)) >= 18) svg.append(as(ymin));
+    if (g.basis === 'data' || Math.abs(yPos(ymin) - yPos(0)) >= 18) svg.append(as(ymin));
   }
-  svg.append(lijn(0, 'var(--zacht)', 1.25), as(0));
+  if (ymin <= 0 && ymax >= 0 && !(g.basis === 'data' && (ymin === 0 || ymax === 0))) svg.append(lijn(0, 'var(--zacht)', 1.25), ymax === 0 ? null : as(0));
+  for (const r of referentie) {
+    svg.append(el('line', { x1: L, x2: W - R, y1: yPos(r.y), y2: yPos(r.y), stroke: 'var(--zacht)', 'stroke-width': 1.25, 'stroke-dasharray': '5 4' }));
+    const onder = r.y < 0; // bij negatieve waarden hangen de staven naar beneden: het label staat links onder de lijn
+    svg.append(tekst(onder ? L + 4 : W - R, yPos(r.y) + (onder ? 17 : -5), r.tekst, { 'text-anchor': onder ? 'start' : 'end', fill: 'var(--inkt)', stroke: 'var(--papier)', 'stroke-width': 4, 'paint-order': 'stroke', 'font-weight': 600 }));
+  }
 
   // as onderaan: weinig labels
-  const stap = n <= 6 ? 1 : Math.ceil((n - 1) / 5);
-  punten.forEach((p, i) => {
-    if (i % stap === 0 || (i === n - 1 && (n - 1) % stap === 0)) {
-      const eind = i === n - 1 && g.soort !== 'staaf';
-      const start = i === 0 && g.soort !== 'staaf';
-      svg.append(tekst(xPos(i), H - 8, eind && g.xtitel ? `${p.x} ${g.xtitel}` : p.x, { 'text-anchor': start ? 'start' : eind ? 'end' : 'middle' }));
-    }
-  });
+  const labelIdx = [];
+  if (g.xjaar) {
+    punten.forEach((p, i) => { if (/(Q1|K1|-01)$/.test(p.x) || i === 0) labelIdx.push(i); });
+    const k = Math.ceil(labelIdx.length / 6);
+    if (k > 1) { const houd = labelIdx.filter((_, j) => j % k === 0); labelIdx.length = 0; labelIdx.push(...houd); }
+  } else {
+    const stap = n <= 6 ? 1 : Math.ceil((n - 1) / 5);
+    punten.forEach((p, i) => { if (i % stap === 0 || (i === n - 1 && (n - 1) % stap === 0)) labelIdx.push(i); });
+  }
+  for (const i of labelIdx) {
+    const p = punten[i];
+    const eind = i === n - 1 && g.soort !== 'staaf';
+    const start = i === 0 && g.soort !== 'staaf';
+    const t = g.xjaar ? p.x.slice(0, 4) : (eind && g.xtitel ? `${p.x} ${g.xtitel}` : p.x);
+    svg.append(tekst(xPos(i), H - 8, t, { 'text-anchor': start ? 'start' : eind ? 'end' : 'middle' }));
+  }
 
   // gegevens
   if (g.soort === 'staaf') {
@@ -124,8 +150,8 @@ export function tekenGrafiek(g, { kies = false, onkies = null, markeer = [] } = 
   }
 
   const node = h('figure', { class: 'figuur' },
-    h('figcaption', { class: 'figtitel' }, g.titel),
+    h('figcaption', { class: 'figtitel' }, anoniem ? 'Grafiek zonder titel' : g.titel),
     svg,
-    h('p', { class: 'klein bron' }, `Bron: ${g.bron} · geldig op ${datumNl(g.geldig_op)}`));
+    anoniem ? null : h('p', { class: 'klein bron' }, `Bron: ${g.bron} · geldig op ${datumNl(g.geldig_op)}`));
   return { node, kies: zetKeuze, markeer: toonMarkeringen, aantal: n, punt: (i) => punten[i], eenheid: g.eenheid, dec };
 }

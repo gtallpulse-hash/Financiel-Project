@@ -76,3 +76,16 @@ svg.grafiek:focus-visible{outline:3px solid var(--herstel);outline-offset:2px}
 .zacht{color:var(--zacht)}
 .rij.zacht{cursor:default}
 .voortgang{margin:12px 0 0}
+
+/* Tabellen en eigen tekst */
+.tabelwrap{overflow-x:auto}
+.tabel{width:100%;border-collapse:collapse;font-size:16px;line-height:24px}
+.tabel th,.tabel td{padding:8px 4px;border-top:1px solid var(--lijn);text-align:left;font-weight:400;vertical-align:top}
+.tabel thead th{font-weight:600;border-top:0;border-bottom:1.5px solid var(--zacht)}
+.tabel tbody th{font-weight:400}
+.tabel .num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.tabel tbody tr:last-child th,.tabel tbody tr:last-child td{border-bottom:1px solid var(--lijn)}
+textarea{width:100%;font:inherit;padding:12px;border:1.5px solid var(--inkt);border-radius:6px;background:transparent;color:var(--inkt);resize:vertical;min-height:140px}
+textarea:focus-visible{outline:3px solid var(--herstel);outline-offset:2px}
+.eigen{white-space:pre-wrap;border-left:3px solid var(--lijn);padding-left:12px}
+.rij.groot{min-height:56px}
