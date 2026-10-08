@@ -59,3 +59,43 @@ if (levels.some((l) => l.entry.id === 'level2')) {
     assert.ok(Math.abs(netto * 100 - -0.9) < 0.1);
   });
 }
+
+if (levels.some((l) => l.entry.id === 'level3')) {
+  const L3 = niveau('level3');
+  const getal = (s) => Number(String(s).replace(/\./g, '').replace(',', '.').replace('−', '-'));
+  const tabellen = [...L3.begrippen.flatMap((b) => b.vragen), ...L3.eindtoets.vragen].filter((q) => q.tabel).map((q) => ({ id: q.id, t: q.tabel }));
+
+  test('level 3: in elke bedrijfstabel is de balans in evenwicht (activa = schulden + eigen vermogen)', () => {
+    assert.ok(tabellen.length >= 8, 'verwacht minstens acht tabellen');
+    for (const { id, t } of tabellen) {
+      const rij = (naam) => t.rijen.find((r) => r[0] === naam);
+      const activa = rij('Totaal activa'), schuld = rij('Totale schulden'), eigen = rij('Eigen vermogen');
+      if (!activa || !schuld || !eigen) continue;
+      for (const kolom of [1, 2]) assert.ok(Math.abs(getal(activa[kolom]) - getal(schuld[kolom]) - getal(eigen[kolom])) <= 1.5, `${id} kolom ${kolom}`);
+    }
+  });
+
+  test('level 3: de Bedrijfsdetective verbergt de naam tot na het antwoord en onthult daarna', () => {
+    const detectives = L3.begrippen.flatMap((b) => b.vragen).concat(L3.eindtoets.vragen).filter((q) => q.detective);
+    assert.ok(detectives.length >= 5);
+    for (const q of detectives) {
+      assert.match(q.tabel.titel, /^Bedrijf [A-E],/);
+      assert.ok(!/Microsoft|Walmart|Delta|Coca-Cola|Costco/.test(q.vraag + q.tabel.titel), `${q.id} verklapt de naam`);
+      assert.match(q.onthulling, /^Bedrijf [A-E] was /);
+    }
+  });
+
+  test('level 3: kwartaalomzet telt op tot het jaarcijfer en groei klopt', () => {
+    const kw = L3.grafieken['ms-kwartaal'].punten.map((p) => p.y);
+    assert.equal(kw.length, 8);
+    const jr = L3.grafieken['ms-omzet'].punten.reduce((o, p) => ({ ...o, [p.x]: p.y }), {});
+    assert.ok(Math.abs(kw.slice(0, 4).reduce((a, b) => a + b, 0) - jr.FY25) < 0.5);
+    assert.ok(Math.abs(kw.slice(4).reduce((a, b) => a + b, 0) - jr.FY26) < 0.5);
+  });
+
+  test('level 3: marges tussen 0 en 100 en brutomarge hoger dan bedrijfsmarge', () => {
+    const m = reeks(L3.grafieken.bedrijfsmarge);
+    for (const v of Object.values(m)) assert.ok(v > 0 && v < 100);
+    assert.equal(Math.max(...Object.values(m)), m.A);
+  });
+}
