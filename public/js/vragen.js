@@ -1,10 +1,23 @@
 // De vraagvormen: meerkeuze, rekenpuzzel, begripkaart (koppelen), dominoketen (volgorde) en grafiek lezen.
 // Elke vorm geeft terug: { node, klaar(), controleer(), nieuwePoging(), resultaat() }.
-import { h, ikoon, fmt, eenheidTekst } from './dom.js';
+import { h, ikoon, fmt, eenheidTekst, datumNl } from './dom.js';
 import { tekenGrafiek } from './grafiek.js';
 import { parseGetal, schud, rekJuist, kopTelling, volTelling, mcJuist, aanwijsJuist } from './logica.js';
 
-const BRON_GRAFIEK = (ctx, q) => (q.grafiek ? tekenGrafiek(ctx.grafieken[q.grafiek]).node : null);
+// Tabel met cijfers (bijvoorbeeld een anonieme jaarrekening voor de Bedrijfsdetective).
+export function tabelNode(t) {
+  return h('figure', { class: 'figuur' },
+    t.titel ? h('figcaption', { class: 'figtitel' }, t.titel) : null,
+    h('div', { class: 'tabelwrap' }, h('table', { class: 'tabel' },
+      t.kolommen ? h('thead', {}, h('tr', {}, ...t.kolommen.map((k, i) => h('th', { scope: 'col', class: i ? 'num' : '' }, k)))) : null,
+      h('tbody', {}, ...t.rijen.map((r) => h('tr', {}, ...r.map((c, i) => (i === 0 ? h('th', { scope: 'row' }, c) : h('td', { class: 'num' }, c)))))))),
+    t.bron ? h('p', { class: 'klein bron' }, `Bron: ${t.bron}${t.geldig_op ? ' · geldig op ' + datumNl(t.geldig_op) : ''}`) : null);
+}
+// Wat boven de vraag staat: grafiek (bij "Raad de grafiek" zonder titel en bron) en tabel.
+const BRON_GRAFIEK = (ctx, q, resultaat = false) => [
+  q.grafiek ? tekenGrafiek(ctx.grafieken[q.grafiek], { anoniem: !!q.raad && !resultaat, markeer: (q.markeer || []).map((m) => ({ kleur: 'herstel', ...m })) }).node : null,
+  q.tabel ? tabelNode(q.tabel) : null,
+];
 const markering = (soort, tekst) => h('span', { class: `fb ${soort}`, style: 'margin:0' }, ikoon(soort === 'juist' ? 'juist' : 'fout'), tekst);
 
 // ---------- meerkeuze ----------
@@ -18,12 +31,12 @@ function mcUI(q, ctx) {
   };
   teken();
   const ui = {
-    node: h('div', {}, BRON_GRAFIEK(ctx, q), lijst),
+    node: h('div', {}, ...BRON_GRAFIEK(ctx, q), lijst),
     opWijziging: () => {},
     klaar: () => gekozen != null,
     controleer: () => ({ juist: mcJuist(q, gekozen) }),
     nieuwePoging: () => { gekozen = null; teken(); },
-    resultaat: () => h('div', {}, BRON_GRAFIEK(ctx, q), h('ul', { class: 'rijen' }, ...q.opties.map((o, i) => h('li', {},
+    resultaat: () => h('div', {}, ...BRON_GRAFIEK(ctx, q, true), h('ul', { class: 'rijen' }, ...q.opties.map((o, i) => h('li', {},
       h('div', { class: 'rij' }, h('span', {}, o),
         i === q.juist ? markering('juist', 'Juist antwoord') : i === gekozen ? markering('fout', 'Jouw keuze') : null))))),
   };
@@ -36,7 +49,7 @@ function rekUI(q, ctx) {
   veld.addEventListener('input', () => ui.opWijziging());
   const getal = () => parseGetal(veld.value);
   const ui = {
-    node: h('div', {}, BRON_GRAFIEK(ctx, q),
+    node: h('div', {}, ...BRON_GRAFIEK(ctx, q),
       h('div', { style: 'display:flex;gap:12px;align-items:center;margin-top:16px' }, veld, q.eenheid ? h('span', { class: 'zacht' }, q.eenheid) : null),
       h('p', { class: 'klein', style: 'margin-top:8px' }, 'Typ een getal. Een komma mag, zoals in 2,5.')),
     opWijziging: () => {},
@@ -46,7 +59,7 @@ function rekUI(q, ctx) {
     resultaat: () => {
       const g = getal();
       const juist = rekJuist(q, g);
-      return h('div', {}, BRON_GRAFIEK(ctx, q), h('ul', { class: 'rijen' },
+      return h('div', {}, ...BRON_GRAFIEK(ctx, q, true), h('ul', { class: 'rijen' },
         h('li', {}, h('div', { class: 'rij' }, h('span', {}, 'Jouw antwoord'), h('span', {}, `${fmt(g, 2).replace(/,00$/, '')}${q.eenheid ? ' ' + q.eenheid : ''}`),
           juist ? markering('juist', 'Juist') : markering('fout', 'Nog niet juist'))),
         h('li', {}, h('div', { class: 'rij' }, h('span', {}, 'Juist antwoord'), h('strong', {}, `${fmt(q.antwoord, 2).replace(/,00$/, '')}${q.eenheid ? ' ' + q.eenheid : ''}`)))));
@@ -165,14 +178,37 @@ function aanwijsUI(q, ctx) {
   return ui;
 }
 
+// ---------- leg het uit: eigen woorden, daarna zelf nakijken ----------
+function legUI(q) {
+  const veld = h('textarea', { id: 'eigen', rows: 6, 'aria-labelledby': 'vraag', placeholder: 'Schrijf of bedenk je antwoord in eigen woorden…' });
+  veld.addEventListener('input', () => ui.opWijziging());
+  const ui = {
+    zelf: true,
+    node: h('div', {}, h('p', { class: 'klein' }, 'Schrijf of bedenk eerst je eigen antwoord. Daarna zie je een modelantwoord met checkpunten en kijk je zelf na.'), veld),
+    opWijziging: () => {},
+    klaar: () => veld.value.trim().length >= 3,
+    controleer: () => ({ juist: true }),
+    nieuwePoging: () => {},
+    resultaat: () => h('div', {},
+      veld.value.trim() ? h('div', {}, h('h2', { class: 'subkop' }, 'Jouw antwoord'), h('p', { class: 'eigen' }, veld.value.trim())) : null,
+      h('h2', { class: 'subkop' }, 'Modelantwoord'), h('p', {}, q.modelantwoord),
+      h('h2', { class: 'subkop' }, 'Checkpunten'),
+      h('ul', { class: 'rijen' }, ...q.checkpunten.map((c) => h('li', {}, h('div', { class: 'rij', style: 'align-items:flex-start' }, h('span', {}, c)))))),
+  };
+  return ui;
+}
+
 export function maakVraag(q, ctx) {
   switch (q.type) {
     case 'mc': return mcUI(q, ctx);
+    case 'mythe': return mcUI({ ...q, opties: ['Feit', 'Mythe'], juist: q.feit ? 0 : 1 }, ctx);
     case 'rek': return rekUI(q, ctx);
     case 'kop': return kopUI(q, ctx);
     case 'vol': return volUI(q, ctx);
     case 'aanwijs': return aanwijsUI(q, ctx);
+    case 'leg': return legUI(q, ctx);
     default: throw new Error('Onbekende vraagvorm: ' + q.type);
   }
 }
-export const VORM_NAAM = { mc: 'Meerkeuze', rek: 'Rekenpuzzel', kop: 'Begripkaart', vol: 'Dominoketen', aanwijs: 'Grafiek lezen' };
+export const VORM_NAAM = { mc: 'Meerkeuze', mythe: 'Mythe of feit', rek: 'Rekenpuzzel', kop: 'Begripkaart', vol: 'Dominoketen', aanwijs: 'Grafiek lezen', leg: 'Leg het uit' };
+export const vormNaam = (q) => (q.raad ? 'Raad de grafiek' : q.cyclus ? 'Cyclus-plaatsing' : q.tabel && q.detective ? 'Bedrijfsdetective' : VORM_NAAM[q.type]);
