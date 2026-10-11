@@ -53,3 +53,30 @@ export function volTelling(q, keten) {
 
 export const mcJuist = (q, gekozen) => gekozen === q.juist;
 export const aanwijsJuist = (q, gekozen) => gekozen === q.juist;
+
+// ---------- niveautest ----------
+// Bij elk level stelt de test vier vragen uit lessen die gelijkmatig verdeeld liggen over het level.
+export function spreidLessen(aantalLessen, k = 4) {
+  const n = Math.min(k, aantalLessen);
+  const uit = [];
+  for (let i = 0; i < n; i++) {
+    const idx = Math.min(aantalLessen - 1, Math.floor(((i + 0.5) * aantalLessen) / n));
+    if (!uit.includes(idx)) uit.push(idx);
+  }
+  return uit;
+}
+// Na twee gemiste vragen is het level niet gehaald: verder vragen heeft geen zin.
+export const levelAfgebroken = (items) => items.filter((x) => !x.juist).length >= 2;
+// items: [{ les: index van de les, juist }] in volgorde van de lessen.
+// Gehaald (hoogstens één fout): alle lessen zijn gekend, behalve die van de gemiste vraag.
+// Niet gehaald: gekend zijn de lessen tot en met de laatste juiste vraag vóór de eerste fout. Zonder bewijs (eerste vraag fout)
+// is niets gekend. De volgende les is daarna de start.
+export function beoordeelLevel(items, aantalLessen) {
+  const gemist = items.filter((x) => !x.juist).map((x) => x.les);
+  const alle = Array.from({ length: aantalLessen }, (_, i) => i);
+  if (gemist.length <= 1) return { geslaagd: true, gekend: alle.filter((i) => !gemist.includes(i)), startLes: gemist.length ? gemist[0] : null };
+  const eerste = Math.min(...gemist);
+  const goed = items.filter((x) => x.juist && x.les < eerste).map((x) => x.les);
+  const grens = goed.length ? Math.max(...goed) : -1;
+  return { geslaagd: false, gekend: alle.filter((i) => i <= grens), startLes: grens + 1 };
+}

@@ -101,3 +101,15 @@ test('lesvoortgang wordt bewaard en gesynchroniseerd als item', () => {
   const andere = maakStore(opslag(), nu);
   assert.equal(andere.voegSamen({ 'l:level1-les1': { v: { klaar: 1 }, t: 1 } }), 1);
 });
+
+test('kenBegrip: vrijgespeeld, komt over drie dagen terug, telt niet als beheerst en overschrijft niets', () => {
+  const s = maakStore(opslag(), nu);
+  assert.equal(s.kenBegrip('a', '2026-03-01'), true);
+  assert.equal(s.bekend('a'), true);
+  assert.equal(s.beheerst('a'), false);
+  assert.equal(s.concept('a').due, '2026-03-04');
+  s.antwoord('b', true, '2026-03-01');
+  const voor = s.concept('b');
+  assert.equal(s.kenBegrip('b', '2026-03-02'), false);
+  assert.deepEqual(s.concept('b'), voor);
+});

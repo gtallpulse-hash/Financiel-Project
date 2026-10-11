@@ -64,6 +64,13 @@ export function maakStore(opslag, nu = () => Date.now()) {
       const dg = state.items['d:' + dag]?.v ?? { n: 0 };
       zet('d:' + dag, { n: dg.n + 1 });
     },
+    // Begrip dat je al kent (bijvoorbeeld na de niveautest): komt vrij in het begrippenboek en over drie dagen terug.
+    // Een bestaande stand blijft ongemoeid en het telt niet als beheerst.
+    kenBegrip(id, dag = vandaag()) {
+      if (state.items['c:' + id]) return false;
+      zet('c:' + id, { lvl: 1, ok: 0, due: plusDagen(dag, 3), n: 0, d: null });
+      return true;
+    },
     // Voortgang in de campagne (lessen en eindtoets).
     les(id) { return state.items['l:' + id]?.v ?? null; },
     zetLes(id, waarde) { zet('l:' + id, waarde); },

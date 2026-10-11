@@ -37,6 +37,17 @@ Het spel heeft twee fasen: een Campagne van 6 levels in vaste volgorde, daarna e
 
 Groei, piek, krimp en herstel. Elk begrip krijgt een plek op dit schema, zodat je ziet hoe alles samenhangt. Vanaf level 5 schat je zelf in waar de economie zit.
 
+## Niveautest
+
+Een korte, optionele test bij het eerste bezoek (ook later via de startpagina) die inschat hoeveel je al weet en lessen overslaat.
+
+- Per level vier vragen uit lessen die gelijkmatig over het level verdeeld zijn, te beginnen bij Level 1. Zonder hints, één poging, na elke vraag enkel juist of fout.
+- Twee gemiste vragen in een level stoppen de test. Hoogstens één fout haalt het level.
+- Gehaald level: alle lessen tellen als gekend, behalve die van de gemiste vraag. Niet gehaald: gekend zijn de lessen tot de laatste juiste vraag vóór de eerste fout, daarna begin je. Zonder enige juiste vraag begin je bij les 1.
+- Je bevestigt het resultaat zelf. Overgeslagen lessen krijgen `overgeslagen: true`, hun begrippen komen vrij in het begrippenboek en keren na drie dagen terug in de herhaling (tellen niet als beheerst).
+- De eindtoets van elk level blijft nodig. Er wordt nooit iets teruggedraaid bij een nieuwe test.
+- Het antwoord op de testvragen verandert niets aan de herhaalplanning.
+
 ## Sessies en spelvormen
 
 Elke sessie volgt dezelfde lus: opwarmer (herhaling), uitleg, oefenen met uitleg bij elk antwoord, en een afsluiter van drie zinnen. Je kiest zelf de lengte.
