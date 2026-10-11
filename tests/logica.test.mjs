@@ -42,3 +42,38 @@ test('koppelen en volgorde tellen juiste plaatsen', () => {
   assert.deepEqual(volTelling(vol, [0, 2, 1]), { goed: 1, van: 3, juist: false });
   assert.equal(volTelling(vol, [0, 1]).juist, false);
 });
+
+import { spreidLessen, beoordeelLevel, levelAfgebroken } from '../public/js/logica.js';
+
+test('niveautest: vier vragen gelijkmatig over de lessen van een level', () => {
+  assert.deepEqual(spreidLessen(8), [1, 3, 5, 7]);
+  assert.deepEqual(spreidLessen(10), [1, 3, 6, 8]);
+  assert.deepEqual(spreidLessen(9), [1, 3, 5, 7]);
+  assert.deepEqual(spreidLessen(3), [0, 1, 2]);
+});
+
+test('niveautest: één fout haalt het level en laat enkel die les over', () => {
+  const r = beoordeelLevel([{ les: 1, juist: true }, { les: 3, juist: false }, { les: 5, juist: true }, { les: 7, juist: true }], 8);
+  assert.equal(r.geslaagd, true);
+  assert.deepEqual(r.gekend, [0, 1, 2, 4, 5, 6, 7]);
+  assert.equal(r.startLes, 3);
+});
+
+test('niveautest: alles juist kent het hele level', () => {
+  const r = beoordeelLevel([1, 3, 5, 7].map((les) => ({ les, juist: true })), 8);
+  assert.deepEqual(r.gekend, [0, 1, 2, 3, 4, 5, 6, 7]);
+  assert.equal(r.startLes, null);
+});
+
+test('niveautest: twee fouten breken het level af en je begint bij de eerste fout', () => {
+  const items = [{ les: 1, juist: true }, { les: 3, juist: false }, { les: 5, juist: false }];
+  assert.equal(levelAfgebroken(items), true);
+  const r = beoordeelLevel(items, 8);
+  assert.equal(r.geslaagd, false);
+  assert.deepEqual(r.gekend, [0, 1]);
+  assert.equal(r.startLes, 2);
+  // zonder enige juiste vraag is er geen bewijs: je begint bij les 1
+  const nul = beoordeelLevel([{ les: 1, juist: false }, { les: 3, juist: false }], 8);
+  assert.deepEqual(nul.gekend, []);
+  assert.equal(nul.startLes, 0);
+});

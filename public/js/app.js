@@ -3,6 +3,7 @@ import { synchroniseer } from './sync.js';
 import { h, ikoon, heeftIkoon, datumNl } from './dom.js';
 import { maakVraag, vormNaam, tabelNode } from './vragen.js';
 import { feest } from './feest.js';
+import { spreidLessen, beoordeelLevel, levelAfgebroken } from './logica.js';
 
 // ---------- opslag en inhoud ----------
 const geheugen = () => { const m = new Map(); return { getItem: (k) => m.get(k) ?? null, setItem: (k, v) => m.set(k, v) }; };
@@ -56,6 +57,14 @@ async function laadTotVolgende() {
     }
     if (e.soort === 'rt' && !rts.has(e.id) && (e.id === doel || v == null)) rts.set(e.id, await laadJson(e.bestand));
     if (e.id === doel) break;
+  }
+}
+async function laadAlleLevels() {
+  for (const e of index.reeks) {
+    if (e.soort !== 'level' || niveaus.has(e.id)) continue;
+    const d = await laadJson(e.bestand);
+    niveaus.set(e.id, d);
+    for (const b of d.begrippen) begrippen.set(b.id, { ...b, niveau: e.id });
   }
 }
 async function laadInhoud() {
@@ -161,6 +170,7 @@ function start() {
     kopRegel = 'Realiteitstoets'; titelRegel = entry.titel;
     hoofd = linkKnop('Naar de realiteitstoets', 'hoofd', `#rt/${v.id}`);
   }
+  const nieuw = nieuweSpeler();
   const totaalLessen = index.reeks.filter((e) => e.soort === 'level').reduce((n, e) => n + e.lessen.length, 0);
   const klaarLessen = index.reeks.filter((e) => e.soort === 'level').reduce((n, e) => n + klaarAantal(e.id), 0);
   scherm([
@@ -171,6 +181,7 @@ function start() {
       voortgangsbalk(klaarLessen, totaalLessen),
       h('p', { style: 'margin:12px 0 0;font-weight:600' }, titelRegel),
       h('p', { class: 'klein', style: 'margin:4px 0 0' }, `Rang: ${RANGEN[rang()].naam} · ${klaarLessen} van ${totaalLessen} lessen klaar`)),
+    nieuw ? h('section', { 'aria-label': 'Niveautest' }, h('h2', {}, 'Ken je al iets?'), h('p', { class: 'zacht', style: 'margin:0' }, 'Doe een korte test en sla lessen over die je al beheerst. Of begin gewoon bij het begin: de eerste lessen zijn rustig opgebouwd.')) : null,
     h('section', { 'aria-label': 'Herhaling' },
       h('div', { class: 'getal' }, String(teHerhalen)),
       h('p', { class: 'zacht', style: 'margin:0' }, teHerhalen === 1 ? 'begrip om te herhalen' : 'begrippen om te herhalen')),
@@ -179,9 +190,12 @@ function start() {
       h('li', {}, h('a', { class: 'rij', href: '#sessie/lang' }, h('span', {}, 'Lange sessie'), h('span', { class: 'meta' }, '20+ min'))),
       h('li', {}, h('a', { class: 'rij', href: '#boek' }, h('span', {}, 'Begrippenboek'), h('span', { class: 'meta' }, `${[...begrippen.keys()].filter((id) => store.bekend(id)).length} vrijgespeeld`))),
       h('li', {}, h('a', { class: 'rij', href: '#kenniskaart' }, h('span', {}, 'Kenniskaart'))),
+      nieuw ? null : h('li', {}, h('a', { class: 'rij', href: '#niveautest' }, h('span', {}, 'Niveautest'), h('span', { class: 'meta' }, store.les('niveautest')?.gedaan ? 'al gedaan' : '5 tot 8 min'))),
       h('li', {}, h('a', { class: 'rij', href: '#instellingen' }, h('span', {}, 'Instellingen en back-up'))))),
     geenAdvies(),
-  ], [hoofd, linkKnop('Korte sessie · 5 min', 'tweede', '#sessie/kort')]);
+  ], nieuw
+    ? [linkKnop('Test mijn niveau · 5 tot 8 min', 'hoofd', '#niveautest'), linkKnop('Begin bij les 1', 'tweede', '#sessie/normaal')]
+    : [hoofd, linkKnop('Korte sessie · 5 min', 'tweede', '#sessie/kort')]);
 }
 
 // ---------- campagne ----------
@@ -298,15 +312,15 @@ function vraagScherm(stap, nr, totaal, res, ga) {
     if (punten >= 1) res.juist++; else if (b) res.opnieuw.push(b.nl);
     hintVak.replaceChildren();
     ui.node.replaceWith(ui.resultaat());
-    uitlegVak.replaceChildren(
+    uitlegVak.replaceChildren(...[
       h('p', { class: `fb ${soort}`, role: 'status', style: 'margin-top:16px' }, ikoon(soort === 'fout' ? 'fout' : 'juist', 24), h('span', {}, tekst)),
-      h('dl', { class: 'uitleg' },
+      stap.snel ? null : h('dl', { class: 'uitleg' },
         h('dt', {}, 'Waarom'), h('dd', {}, q.waarom),
         h('dt', {}, 'Wanneer het anders loopt'), h('dd', {}, q.wanneer),
         h('dt', {}, 'Waar je het aan herkent'), h('dd', {}, q.herken),
         q.onthulling ? [h('dt', {}, 'Onthulling'), h('dd', {}, q.onthulling)] : null),
-      bronBlok ? bronRegel(bronBlok, q.id, q.vraag) : null);
-    const volgendeKnop = knop(nr === totaal ? 'Afronden' : 'Volgende', 'hoofd', ga);
+      bronBlok && !stap.snel ? bronRegel(bronBlok, q.id, q.vraag) : null].filter(Boolean));
+    const volgendeKnop = knop(stap.snel ? 'Volgende' : nr === totaal ? 'Afronden' : 'Volgende', 'hoofd', ga);
     balk.replaceChildren(h('div', {}, volgendeKnop));
     window.scrollTo({ top: uitlegVak.offsetTop - 80 });
     volgendeKnop.focus({ preventScroll: true });
@@ -331,18 +345,18 @@ function vraagScherm(stap, nr, totaal, res, ga) {
   ui.opWijziging = () => { controleer.disabled = !ui.klaar(); };
 
   function beoordeeld(p) {
-    if (b) store.antwoord(b.id, p === 1);
+    if (b && !stap.geenOpslag) store.antwoord(b.id, p === 1);
     klaarMelden(p, p === 1 ? 'juist' : p === 0.5 ? 'let-op' : 'fout', p === 1 ? 'Goed.' : p === 0.5 ? 'Deels goed. Dit komt sneller terug.' : 'Nog niet goed. Dit komt sneller terug.');
   }
   function afronden(juist) {
     const eerste = juist && poging === 1;
-    if (b) store.antwoord(b.id, eerste);
+    if (b && !stap.geenOpslag) store.antwoord(b.id, eerste);
     klaarMelden(eerste ? 1 : 0, eerste ? 'juist' : juist ? 'let-op' : 'fout',
       eerste ? 'Juist.' : juist ? 'Juist bij de tweede poging. Dit komt sneller terug.' : (toets ? 'Nog niet juist.' : 'Nog niet juist. Dit komt sneller terug.'));
   }
 
   scherm([
-    kop(terug('Stop en bewaar'), `${stap.fase} · vraag ${nr} van ${totaal}`),
+    kop(terug(stap.stopTekst || 'Stop en bewaar'), stap.kopTekst || `${stap.fase} · vraag ${nr} van ${totaal}`),
     voortgangsbalk(nr - 1, totaal),
     h('p', { class: 'klein', style: 'margin:12px 0 0' }, vormNaam(q) + (toets ? ' · één poging' : '')),
     vraagKop, ui.node, hintVak, uitlegVak,
@@ -539,6 +553,112 @@ function rtKlaar(id, res) {
   if (eerste) feest();
 }
 
+// ---------- niveautest ----------
+const nieuweSpeler = () => !store.les('niveautest') && index.reeks.filter((e) => e.soort === 'level').every((e) => klaarAantal(e.id) === 0);
+const KLEIN_MAX = 24; // 6 levels maal 4 vragen: de bovengrens, de meeste mensen hebben er minder nodig
+
+function niveautestIntro() {
+  const eerder = store.les('niveautest');
+  scherm([
+    kop(terug()),
+    h('h1', {}, 'Test je niveau'),
+    h('p', {}, 'Ken je al iets van economie en beleggen? Met een korte test slaan we lessen over die je al beheerst, zodat je meteen bij nieuwe leerstof begint.'),
+    h('ul', { class: 'lijst' },
+      h('li', {}, 'Vier vragen per level, te beginnen bij Level 1. Hoe meer je weet, hoe verder je geraakt.'),
+      h('li', {}, 'Zonder hints en met één poging per vraag. Na elke vraag zie je enkel of je antwoord klopte.'),
+      h('li', {}, 'Twee gemiste vragen in een level en de test stopt. Dan begin je bij de eerste les die je nog niet kende.'),
+      h('li', {}, 'Je kiest zelf of je het resultaat overneemt. Niets verandert zolang je dat niet bevestigt.'),
+      h('li', {}, 'Je eindtoets van elk level blijft nodig om het level te halen.')),
+    h('p', { class: 'zacht' }, 'Duurt ongeveer 5 tot 8 minuten. Gokken helpt niet: je krijgt dan lessen die te moeilijk zijn.'),
+    eerder?.gedaan ? h('p', { class: 'klein' }, 'Je deed de test al eerder. Lessen die je al klaar had, blijven klaar. Er wordt nooit iets teruggedraaid.') : null,
+    geenAdvies(),
+  ], [knop('Start de test', 'hoofd', startNiveautest), linkKnop('Liever bij het begin beginnen', 'tweede', '#')]);
+}
+
+async function startNiveautest() {
+  scherm([kop(terug()), h('p', { class: 'zacht' }, 'Even de vragen klaarzetten…')]);
+  try { await laadAlleLevels(); } catch { return scherm([kop(terug()), h('p', { class: 'waarschuwing' }, 'De vragen konden niet geladen worden. Probeer later opnieuw met bereik.')], [linkKnop('Terug naar start', 'hoofd', '#')]); }
+  sessieBezig = true;
+  history.replaceState(null, '', location.pathname + location.search + '#');
+  const levels = index.reeks.filter((e) => e.soort === 'level');
+  const uitkomst = [];
+  let nr = 0;
+  const kies = (arr) => arr[Math.floor(Math.random() * arr.length)];
+  const doeLevel = (li) => {
+    if (li >= levels.length) return toonUitslag(uitkomst);
+    const e = levels[li];
+    const lv = niveaus.get(e.id);
+    const posities = spreidLessen(lv.lessen.length, 4);
+    const items = [];
+    const vraag = (k) => {
+      if (k >= posities.length || levelAfgebroken(items)) {
+        const oordeel = beoordeelLevel(items, lv.lessen.length);
+        uitkomst.push({ e, lv, items, ...oordeel });
+        return oordeel.geslaagd ? doeLevel(li + 1) : toonUitslag(uitkomst);
+      }
+      const les = lv.lessen[posities[k]];
+      const b = begrippen.get(kies(les.begrippen));
+      const q = kies(b.vragen.filter((x) => x.type !== 'leg'));
+      const res = { n: 0, juist: 0, punten: 0, opnieuw: [], begrippen: new Set() };
+      nr++;
+      vraagScherm({ soort: 'vraag', b, q, fase: 'Niveautest', kopTekst: `Niveautest · ${levelTitel(e)} · vraag ${nr}`, stopTekst: 'Test stoppen', toets: true, snel: true, geenOpslag: true },
+        nr, KLEIN_MAX, res, () => { items.push({ les: posities[k], juist: res.punten >= 1 }); vraag(k + 1); });
+    };
+    vraag(0);
+  };
+  doeLevel(0);
+}
+
+const naTest = () => { history.replaceState(null, '', location.pathname + location.search + '#'); route(); };
+
+function toonUitslag(uitkomst) {
+  sessieBezig = false;
+  const nietGehaald = uitkomst.find((u) => !u.geslaagd);
+  const gekendAantal = uitkomst.reduce((n, u) => n + u.gekend.length, 0);
+  const begrippenAantal = uitkomst.reduce((n, u) => n + u.gekend.reduce((m, i) => m + u.lv.lessen[i].begrippen.length, 0), 0);
+  const alles = uitkomst.length === index.reeks.filter((e) => e.soort === 'level').length && !nietGehaald && uitkomst.every((u) => u.gekend.length === u.lv.lessen.length);
+  const rij = (u) => {
+    const tot = u.lv.lessen.length;
+    const meta = u.geslaagd ? (u.gekend.length === tot ? 'alle lessen gekend' : `${u.gekend.length} van ${tot} gekend`) : u.gekend.length ? `gekend tot les ${u.gekend.length}` : 'begin bij les 1';
+    return h('li', {}, h('div', { class: 'rij' }, h('span', { style: 'display:flex;gap:8px;align-items:center' }, u.geslaagd ? ikoon('juist') : ikoon('hint'), levelTitel(u.e)), h('span', { class: 'meta' }, meta)));
+  };
+  let kopje, tekst;
+  if (alles) { kopje = 'Je kent de leerstof van alle levels'; tekst = 'Je kunt meteen de eindtoetsen en realiteitstoetsen doen. Begrippen komen later terug als herhaling.'; }
+  else if (!uitkomst[0].gekend.length) { kopje = 'Begin bij het begin'; tekst = 'Dat is een prima plan. De lessen starten rustig en bouwen op. Je hoeft niets over te slaan.'; }
+  else {
+    const u = nietGehaald || uitkomst[uitkomst.length - 1];
+    const les = u.lv.lessen[u.startLes ?? 0];
+    kopje = nietGehaald ? `Je start bij ${levelTitel(u.e)}, les ${(u.startLes ?? 0) + 1}` : 'Je kent het meeste al';
+    tekst = nietGehaald ? `Eerste les die nog nieuw is: ‘${les.titel}’.` : 'Enkele lessen blijven open; de rest sla je over.';
+  }
+  const pas = () => {
+    const dag = vandaag();
+    for (const u of uitkomst) {
+      for (const i of u.gekend) {
+        const les = u.lv.lessen[i];
+        const sleutel = `${u.e.id}-${les.id}`;
+        if (!store.les(sleutel)?.klaar) store.zetLes(sleutel, { klaar: 1, dag, overgeslagen: 1 });
+        les.begrippen.forEach((id) => store.kenBegrip(id, dag));
+      }
+    }
+    store.zetLes('niveautest', { gedaan: 1, dag, lessen: gekendAantal });
+    autoSync();
+    naTest();
+  };
+  const nee = () => { store.zetLes('niveautest', { gedaan: 1, dag: vandaag(), lessen: 0 }); autoSync(); naTest(); };
+  scherm([
+    kop(h('span', {}, 'Niveautest')),
+    h('h1', {}, kopje),
+    h('p', {}, tekst),
+    h('ul', { class: 'rijen' }, ...uitkomst.map(rij)),
+    gekendAantal ? h('p', { class: 'zacht', style: 'margin-top:16px' }, `Als je dit overneemt, tellen ${gekendAantal} ${gekendAantal === 1 ? 'les' : 'lessen'} als klaar en komen ${begrippenAantal} begrippen vrij in je begrippenboek. Ze komen later terug in de herhaling, zodat je ze niet vergeet.`) : null,
+    h('p', { class: 'klein' }, 'Dit is een inschatting op basis van een paar vragen, geen oordeel. Slaat een les toch te veel over, dan kun je ze altijd openen via de Campagne.'),
+    geenAdvies(),
+  ], gekendAantal
+    ? [knop('Neem over en ga verder', 'hoofd', pas), knop('Toch bij het begin beginnen', 'tweede', nee)]
+    : [knop('Begin bij les 1', 'hoofd', nee), linkKnop('Test opnieuw', 'tweede', '#niveautest')]);
+}
+
 // ---------- begrippenboek ----------
 function boek() {
   const lijst = [...begrippen.values()].filter((b) => store.bekend(b.id)).sort((a, b) => a.nl.localeCompare(b.nl, 'nl'));
@@ -641,6 +761,7 @@ async function route() {
   if (deel === 'level') return levelScherm(p1);
   if (deel === 'toets') return toetsIntro(p1);
   if (deel === 'rt') return rtIntro(p1);
+  if (deel === 'niveautest') return niveautestIntro();
   if (deel === 'boek') return p1 ? boekBegrip(p1) : boek();
   if (deel === 'kenniskaart') return kenniskaart();
   return start();
